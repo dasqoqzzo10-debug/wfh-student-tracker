@@ -91,6 +91,7 @@ const studentAdvisor = document.getElementById('studentAdvisor');
 const studentCompany = document.getElementById('studentCompany');
 const btnCloseModal = document.getElementById('btnCloseModal');
 const btnCancelModal = document.getElementById('btnCancelModal');
+const btnDeleteProfile = document.getElementById('btnDeleteProfile');
 
 // Supervisor PIN Modal Elements
 const pinModal = document.getElementById('pinModal');
@@ -1381,6 +1382,61 @@ function registerEventListeners() {
     btnCancelModal.addEventListener('click', hideProfileModal);
     profileForm.addEventListener('submit', handleProfileSubmit);
 
+    // Delete Student Profile Action
+    btnDeleteProfile.addEventListener('click', async () => {
+        const editIndex = parseInt(editProfileIndex.value, 10);
+        if (editIndex < 0) return;
+
+        const profileToDelete = profiles[editIndex];
+
+        const result = await Swal.fire({
+            title: 'ต้องการลบโปรไฟล์นี้?',
+            text: `ยืนยันการลบโปรไฟล์ของ "${profileToDelete.name}" หรือไม่? ข้อมูลประวัติการลงเวลาทำงานทั้งหมดของนักศึกษารายนี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'ยืนยันลบโปรไฟล์',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (result.isConfirmed) {
+            showLoadingSpinner(true);
+            try {
+                if (isCloudMode) {
+                    const res = await fetch(`/api/profiles?id=${profileToDelete.id}`, {
+                        method: 'DELETE'
+                    });
+                    if (!res.ok) {
+                        const errData = await res.json();
+                        throw new Error(errData.error || "Failed to delete profile from Cloud");
+                    }
+                } else {
+                    profiles = profiles.filter((_, idx) => idx !== editIndex);
+                    saveLocalData();
+                }
+
+                // Adjust active index
+                if (activeProfileIndex === editIndex) {
+                    activeProfileIndex = profiles.length > 0 ? 0 : -1;
+                    localStorage.setItem('wfh_active_profile_index', activeProfileIndex);
+                } else if (activeProfileIndex > editIndex) {
+                    activeProfileIndex--;
+                    localStorage.setItem('wfh_active_profile_index', activeProfileIndex);
+                }
+
+                hideProfileModal();
+                await loadDataRouter();
+
+                Swal.fire('ลบโปรไฟล์สำเร็จ!', '', 'success');
+            } catch (err) {
+                Swal.fire('เกิดข้อผิดพลาด!', err.message, 'error');
+            } finally {
+                showLoadingSpinner(false);
+            }
+        }
+    });
+
     // Sidebar Section Navigations
     document.querySelectorAll('.sidebar-nav li').forEach(item => {
         item.addEventListener('click', (e) => {
@@ -1809,11 +1865,13 @@ function showProfileModal(index = -1) {
         studentAdvisor.value = profile.advisor || '';
         studentCompany.value = profile.company || '';
         studentId.disabled = false; // อนุญาตให้แก้ไขรหัสนักศึกษาได้
+        btnDeleteProfile.classList.remove('hidden');
     } else {
         modalTitle.textContent = "เพิ่มโปรไฟล์นักศึกษาใหม่";
         editProfileIndex.value = -1;
         document.getElementById('oldStudentId').value = "";
         studentId.disabled = false;
+        btnDeleteProfile.classList.add('hidden');
     }
     
     profileModal.classList.remove('hidden');
