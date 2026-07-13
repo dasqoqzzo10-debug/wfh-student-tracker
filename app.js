@@ -1803,14 +1803,16 @@ function showProfileModal(index = -1) {
         
         const profile = profiles[index];
         studentId.value = profile.id;
+        document.getElementById('oldStudentId').value = profile.id;
         studentName.value = profile.name;
         studentDept.value = profile.dept || '';
         studentAdvisor.value = profile.advisor || '';
         studentCompany.value = profile.company || '';
-        studentId.disabled = true;
+        studentId.disabled = false; // อนุญาตให้แก้ไขรหัสนักศึกษาได้
     } else {
         modalTitle.textContent = "เพิ่มโปรไฟล์นักศึกษาใหม่";
         editProfileIndex.value = -1;
+        document.getElementById('oldStudentId').value = "";
         studentId.disabled = false;
     }
     
@@ -1825,6 +1827,7 @@ async function handleProfileSubmit(e) {
     e.preventDefault();
     
     const idVal = studentId.value.trim();
+    const oldIdVal = document.getElementById('oldStudentId').value.trim();
     const nameVal = studentName.value.trim();
     const deptVal = studentDept.value.trim();
     const advisorVal = studentAdvisor.value.trim();
@@ -1836,6 +1839,7 @@ async function handleProfileSubmit(e) {
         if (isCloudMode) {
             const payload = {
                 id: idVal,
+                oldId: oldIdVal,
                 name: nameVal,
                 dept: deptVal,
                 advisor: advisorVal,
@@ -1855,10 +1859,23 @@ async function handleProfileSubmit(e) {
             }
         } else {
             if (editIndex >= 0) {
-                profiles[editIndex].name = nameVal;
-                profiles[editIndex].dept = deptVal;
-                profiles[editIndex].advisor = advisorVal;
-                profiles[editIndex].company = companyVal;
+                const oldProfile = profiles[editIndex];
+                
+                // ถ้ารหัสเปลี่ยนในโหมดออฟไลน์
+                if (idVal !== oldIdVal) {
+                    const isDuplicate = profiles.some((p, i) => p.id === idVal && i !== editIndex);
+                    if (isDuplicate) throw new Error("รหัสนักศึกษาใหม่นี้มีอยู่ในระบบแล้ว");
+                    
+                    oldProfile.logs.forEach(log => {
+                        log.student_id = idVal;
+                    });
+                }
+                
+                oldProfile.id = idVal;
+                oldProfile.name = nameVal;
+                oldProfile.dept = deptVal;
+                oldProfile.advisor = advisorVal;
+                oldProfile.company = companyVal;
             } else {
                 const isDuplicate = profiles.some(p => p.id === idVal);
                 if (isDuplicate) throw new Error("รหัสนักศึกษาซ้ำ!");
