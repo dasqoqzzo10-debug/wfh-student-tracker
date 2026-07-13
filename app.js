@@ -92,6 +92,7 @@ const studentCompany = document.getElementById('studentCompany');
 const btnCloseModal = document.getElementById('btnCloseModal');
 const btnCancelModal = document.getElementById('btnCancelModal');
 const btnDeleteProfile = document.getElementById('btnDeleteProfile');
+const btnSidebarEditProfile = document.getElementById('btnSidebarEditProfile');
 
 // Supervisor PIN Modal Elements
 const pinModal = document.getElementById('pinModal');
@@ -382,6 +383,7 @@ function updateUIVisibility() {
             noProfilePrompt.classList.add('hidden');
             dashboardGrid.classList.remove('hidden');
             studentInfoBanner.classList.remove('hidden');
+            btnSidebarEditProfile.disabled = false;
             
             const activeProfile = profiles[activeProfileIndex];
             
@@ -400,6 +402,7 @@ function updateUIVisibility() {
             dashboardGrid.classList.add('hidden');
             studentInfoBanner.classList.add('hidden');
             currentStudentDisplay.textContent = "กรุณาเลือกหรือสร้างโปรไฟล์นักศึกษาเพื่อเริ่มต้นใช้งาน";
+            btnSidebarEditProfile.disabled = true;
         }
     } else {
         // Supervisor Role
@@ -1373,6 +1376,12 @@ function registerEventListeners() {
     btnPromptCreate.addEventListener('click', () => showProfileModal());
     
     btnEditProfile.addEventListener('click', () => {
+        if (activeProfileIndex >= 0) {
+            showProfileModal(activeProfileIndex);
+        }
+    });
+
+    btnSidebarEditProfile.addEventListener('click', () => {
         if (activeProfileIndex >= 0) {
             showProfileModal(activeProfileIndex);
         }
