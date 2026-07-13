@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบลงเวลาปฏิบัติงาน Work From Home - นักศึกษาฝึกงาน/สหกิจศึกษา</title>
+    <!-- Google Fonts: Inter & Sarabun -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 for beautiful alert dialogs -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Main Application Wrapper -->
+    <div class="app-container">
+        
+        <!-- Sidebar / Navigation -->
+        <aside class="sidebar no-print">
+            <div class="sidebar-header">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-business-time"></i>
+                </div>
+                <div class="logo-text">
+                    <h2>WFH Tracker</h2>
+                    <span>Co-op Education</span>
+                </div>
+            </div>
+
+            <!-- Role Selector Group -->
+            <div class="role-selector-box">
+                <label><i class="fa-solid fa-user-gear"></i> บทบาทผู้ใช้งาน</label>
+                <div class="role-toggle-group">
+                    <button id="btnRoleStudent" class="role-btn active">
+                        <i class="fa-solid fa-user-graduate"></i> นักศึกษา
+                    </button>
+                    <button id="btnRoleSupervisor" class="role-btn">
+                        <i class="fa-solid fa-user-tie"></i> พี่เลี้ยง
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Student Profile Selector / Manager (Student Mode Only) -->
+            <div class="profile-manager-box" id="sidebarProfileBox">
+                <label for="profileSelect"><i class="fa-solid fa-user-graduate"></i> เลือกโปรไฟล์นักศึกษา</label>
+                <div class="select-wrapper">
+                    <select id="profileSelect" class="form-control">
+                        <!-- Profiles will be loaded dynamically -->
+                        <option value="" disabled selected>-- เลือกโปรไฟล์ --</option>
+                    </select>
+                </div>
+                
+                <button id="btnNewProfile" class="btn btn-secondary btn-block">
+                    <i class="fa-solid fa-plus"></i> เพิ่มโปรไฟล์ใหม่
+                </button>
+            </div>
+
+            <!-- Sidebar Navigation (Student Mode Links) -->
+            <nav class="sidebar-nav" id="studentNav">
+                <ul>
+                    <li class="active" data-section="dashboard">
+                        <a href="#"><i class="fa-solid fa-chart-line"></i> แดชบอร์ด & ลงเวลา</a>
+                    </li>
+                    <li data-section="calendar-section">
+                        <a href="#"><i class="fa-solid fa-calendar-days"></i> ปฏิทินปฏิบัติงาน</a>
+                    </li>
+                    <li data-section="history-section">
+                        <a href="#"><i class="fa-solid fa-list-check"></i> ประวัติและส่งออกรายงาน</a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar Navigation (Supervisor Mode Links) -->
+            <nav class="sidebar-nav hidden" id="supervisorNav">
+                <ul>
+                    <li class="active" data-section="supervisor-panel">
+                        <a href="#"><i class="fa-solid fa-signature"></i> จัดการตรวจสอบ & อนุมัติ</a>
+                    </li>
+                    <li data-section="supervisor-settings">
+                        <a href="#"><i class="fa-solid fa-gears"></i> ตั้งค่ารหัสผ่าน & ลายเซ็น</a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button id="btnBackup" class="btn btn-icon-only" title="สำรองข้อมูลสำรอง (Backup)">
+                    <i class="fa-solid fa-download"></i> สำรองข้อมูล
+                </button>
+                <button id="btnRestore" class="btn btn-icon-only" title="นำเข้าข้อมูลสำรอง (Restore)">
+                    <i class="fa-solid fa-upload"></i> นำเข้า
+                </button>
+                <input type="file" id="fileRestore" accept=".json" style="display: none;">
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Top Nav Header -->
+            <header class="top-header no-print">
+                <div class="header-title">
+                    <h1 id="pageTitle">แดชบอร์ด & ลงเวลาปฏิบัติงาน</h1>
+                    <p id="currentStudentDisplay">กรุณาเลือกหรือสร้างโปรไฟล์นักศึกษาเพื่อเริ่มต้นใช้งาน</p>
+                </div>
+                
+                <!-- Theme Toggle & Today Widget -->
+                <div class="header-widgets">
+                    <div class="theme-switch" id="themeToggle" title="สลับโหมด มืด/สว่าง">
+                        <i class="fa-solid fa-moon"></i>
+                    </div>
+                    <div class="date-badge">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <span id="headerDate">-- / -- / ----</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ================= SECTION: Student Dashboard ================= -->
+            <section id="dashboard" class="content-section active">
+                
+                <!-- Student Info Card (Brief) -->
+                <div id="studentInfoBanner" class="info-banner card hidden">
+                    <div class="info-grid">
+                        <div>
+                            <span class="info-label">รหัสนักศึกษา</span>
+                            <span class="info-value" id="infoStudentId">-</span>
+                        </div>
+                        <div>
+                            <span class="info-label">ชื่อ - นามสกุล</span>
+                            <span class="info-value" id="infoStudentName">-</span>
+                        </div>
+                        <div>
+                            <span class="info-label">อาจารย์ที่ปรึกษา / พี่เลี้ยง</span>
+                            <span class="info-value" id="infoStudentAdvisor">-</span>
+                        </div>
+                        <div>
+                            <span class="info-label">หน่วยงาน / แผนก</span>
+                            <span class="info-value" id="infoStudentDept">-</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-icon" id="btnEditProfile" title="แก้ไขข้อมูลโปรไฟล์">
+                        <i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อมูล
+                    </button>
+                </div>
+
+                <!-- Profile Prompt if no profile selected -->
+                <div id="noProfilePrompt" class="card empty-state">
+                    <i class="fa-solid fa-users-viewfinder"></i>
+                    <h3>ยังไม่ได้เลือกโปรไฟล์นักศึกษา</h3>
+                    <p>กรุณาเลือกโปรไฟล์ที่มีอยู่จากแถบด้านซ้าย หรือกดปุ่มเพิ่มโปรไฟล์เพื่อเริ่มต้นการใช้งานบันทึกเวลาทำงาน</p>
+                    <button id="btnPromptCreate" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> สร้างโปรไฟล์นักศึกษา</button>
+                </div>
+
+                <div id="dashboardGrid" class="dashboard-grid hidden">
+                    
+                    <!-- Quick Clock-In/Out Card -->
+                    <div class="card card-clock shadow-md">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-business-time"></i> ลงเวลาปฏิบัติงานปัจจุบัน</h3>
+                            <span class="badge-status" id="clockStatusBadge">ไม่ได้เข้างาน</span>
+                        </div>
+                        <div class="card-body clock-center">
+                            <!-- Live Digital Clock -->
+                            <div class="live-clock">
+                                <div id="liveTime">00:00:00</div>
+                                <div id="liveDate">วันจันทร์ที่ 1 มกราคม 2569</div>
+                            </div>
+                            
+                            <div class="form-group w-full mt-4">
+                                <label for="clockNote">หมายเหตุ / ภาระงานวันนี้</label>
+                                <textarea id="clockNote" class="form-control" rows="2" placeholder="วันนี้ทำอะไรบ้าง เช่น เขียนรายงาน, พัฒนาหน้าจอ UI..."></textarea>
+                            </div>
+                            
+                            <div class="clock-actions">
+                                <button id="btnClockIn" class="btn btn-success btn-lg">
+                                    <i class="fa-solid fa-arrow-right-to-bracket"></i> ลงเวลาเข้างาน
+                                </button>
+                                <button id="btnClockOut" class="btn btn-danger btn-lg" disabled>
+                                    <i class="fa-solid fa-arrow-right-from-bracket"></i> ลงเวลาออกงาน
+                                </button>
+                            </div>
+                            <p class="text-muted mt-2 text-center text-sm">
+                                <i class="fa-solid fa-circle-info"></i> ปุ่มจะเปลี่ยนไปตามสถานะงานปัจจุบันโดยอัตโนมัติ
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Manual Clock Entry Card -->
+                    <div class="card card-manual-entry">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-file-signature"></i> ลงเวลาย้อนหลัง / ปรับปรุงเวลา</h3>
+                        </div>
+                        <form id="manualEntryForm" class="card-body">
+                            <div class="form-group">
+                                <label for="entryDate">วันที่ปฏิบัติงาน</label>
+                                <input type="date" id="entryDate" class="form-control" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group col">
+                                    <label for="entryInTime">เวลาเข้างาน</label>
+                                    <input type="time" id="entryInTime" class="form-control" required>
+                                </div>
+                                <div class="form-group col">
+                                    <label for="entryOutTime">เวลาออกงาน</label>
+                                    <input type="time" id="entryOutTime" class="form-control" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="entryNote">หมายเหตุ / กิจกรรมที่ปฏิบัติ</label>
+                                <textarea id="entryNote" class="form-control" rows="3" placeholder="ระบุรายละเอียดการปฏิบัติงานย้อนหลัง..." required></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลย้อนหลัง
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- KPI Statistics Widget Group -->
+                    <div class="stats-container col-span-2">
+                        <div class="card card-stat">
+                            <div class="stat-icon bg-soft-primary"><i class="fa-solid fa-calendar-check"></i></div>
+                            <div class="stat-details">
+                                <span class="stat-val" id="statTotalDays">0</span>
+                                <span class="stat-title">จำนวนวันที่ทำงาน</span>
+                            </div>
+                        </div>
+                        
+                        <div class="card card-stat">
+                            <div class="stat-icon bg-soft-success"><i class="fa-solid fa-clock"></i></div>
+                            <div class="stat-details">
+                                <span class="stat-val" id="statTotalHours">0.0</span>
+                                <span class="stat-title">จำนวนชั่วโมงทำงานรวม</span>
+                            </div>
+                        </div>
+                        
+                        <div class="card card-stat">
+                            <div class="stat-icon bg-soft-warning"><i class="fa-solid fa-hourglass-half"></i></div>
+                            <div class="stat-details">
+                                <span class="stat-val" id="statAvgHours">0.0</span>
+                                <span class="stat-title">ชั่วโมงทำงานเฉลี่ย / วัน</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SECTION: Calendar View ================= -->
+            <section id="calendar-section" class="content-section">
+                <div class="card">
+                    <div class="card-header calendar-header-controls">
+                        <h3><i class="fa-solid fa-calendar-days"></i> ปฏิทินลงเวลาปฏิบัติงาน</h3>
+                        <div class="calendar-nav">
+                            <button id="btnPrevMonth" class="btn btn-icon"><i class="fa-solid fa-chevron-left"></i></button>
+                            <h4 id="calendarMonthTitle">กรกฎาคม 2569</h4>
+                            <button id="btnNextMonth" class="btn btn-icon"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Calendar Legend -->
+                        <div class="calendar-legend">
+                            <span class="legend-item"><span class="color-box bg-mint"></span> ลงเวลาครบถ้วน (อนุมัติแล้ว)</span>
+                            <span class="legend-item"><span class="color-box bg-slate-light"></span> รอการตรวจ / ยังไม่ครบถ้วน</span>
+                            <span class="legend-item"><span class="color-box bg-danger"></span> ปฏิเสธ/ต้องแก้ไข</span>
+                        </div>
+                        
+                        <!-- Calendar Grid -->
+                        <div class="calendar-grid-wrapper">
+                            <div class="calendar-weekdays">
+                                <div>อา.</div>
+                                <div>จ.</div>
+                                <div>อ.</div>
+                                <div>พ.</div>
+                                <div>พฤ.</div>
+                                <div>ศ.</div>
+                                <div>ส.</div>
+                            </div>
+                            <div id="calendarDays" class="calendar-days">
+                                <!-- Days will be generated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SECTION: History & Export ================= -->
+            <section id="history-section" class="content-section">
+                <!-- Filters & Search Card -->
+                <div class="card mb-4">
+                    <div class="card-body filter-bar flex-wrap justify-between align-center">
+                        <div class="filter-inputs">
+                            <div class="form-group mb-0">
+                                <label for="filterMonth" class="sr-only">เลือกเดือน</label>
+                                <select id="filterMonth" class="form-control">
+                                    <option value="all">แสดงทุกเดือน</option>
+                                    <option value="0">มกราคม</option>
+                                    <option value="1">กุมภาพันธ์</option>
+                                    <option value="2">มีนาคม</option>
+                                    <option value="3">เมษายน</option>
+                                    <option value="4">พฤษภาคม</option>
+                                    <option value="5">มิถุนายน</option>
+                                    <option value="6">กรกฎาคม</option>
+                                    <option value="7">สิงหาคม</option>
+                                    <option value="8">กันยายน</option>
+                                    <option value="9">ตุลาคม</option>
+                                    <option value="10">พฤศจิกายน</option>
+                                    <option value="11">ธันวาคม</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label for="searchTask" class="sr-only">ค้นหากิจกรรม</label>
+                                <div class="input-search-wrapper">
+                                    <input type="text" id="searchTask" class="form-control" placeholder="ค้นหาภาระงาน/หมายเหตุ...">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button id="btnExportCSV" class="btn btn-secondary">
+                                <i class="fa-solid fa-file-csv"></i> ส่งออก Excel/CSV
+                            </button>
+                            <button id="btnPrintReport" class="btn btn-primary">
+                                <i class="fa-solid fa-print"></i> พิมพ์รายงานสรุป
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Table Card -->
+                <div class="card">
+                    <div class="card-header flex justify-between align-center">
+                        <h3><i class="fa-solid fa-list-check"></i> ตารางบันทึกกิจกรรมประจำวัน</h3>
+                        <span class="badge" id="logCountBadge">0 รายการ</span>
+                    </div>
+                    <div class="card-body table-responsive">
+                        <table id="historyTable" class="table">
+                            <thead>
+                                <tr>
+                                    <th width="12%">วันที่</th>
+                                    <th width="10%">เวลาเข้า</th>
+                                    <th width="10%">เวลาออก</th>
+                                    <th width="10%">ชั่วโมงทำงาน</th>
+                                    <th width="15%">สถานะตรวจรับ</th>
+                                    <th>รายละเอียดงาน / หมายเหตุ</th>
+                                    <th width="10%" class="text-center no-print">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-6">
+                                        <i class="fa-solid fa-inbox text-2xl mb-2 block"></i>
+                                        ไม่พบข้อมูลการปฏิบัติงาน
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SECTION: Supervisor Approve Panel ================= -->
+            <section id="supervisor-panel" class="content-section">
+                <!-- Student selection card for supervisor -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-user-check"></i> เลือกนักศึกษาเพื่อทำการตรวจสอบเวลา</h3>
+                    </div>
+                    <div class="card-body flex justify-between align-center flex-wrap gap-4">
+                        <div class="form-group mb-0 flex-grow" style="max-width: 400px;">
+                            <label for="svStudentSelect">รายชื่อนักศึกษาฝึกงานสหกิจ</label>
+                            <div class="select-wrapper">
+                                <select id="svStudentSelect" class="form-control">
+                                    <!-- Options loaded dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons mt-4">
+                            <button id="btnApproveAll" class="btn btn-success">
+                                <i class="fa-solid fa-check-double"></i> อนุมัติเวลาทั้งหมดของนักศึกษานี้
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI stats of selected student for supervisor -->
+                <div class="stats-container mb-4">
+                    <div class="card card-stat">
+                        <div class="stat-icon bg-soft-primary"><i class="fa-solid fa-clock"></i></div>
+                        <div class="stat-details">
+                            <span class="stat-val" id="svStatTotalHours">0.0</span>
+                            <span class="stat-title">ชั่วโมงปฏิบัติงานรวม</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card card-stat">
+                        <div class="stat-icon bg-soft-success"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="stat-details">
+                            <span class="stat-val" id="svStatApprovedHours">0.0</span>
+                            <span class="stat-title">อนุมัติแล้ว (ชั่วโมง)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card card-stat">
+                        <div class="stat-icon bg-soft-warning"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+                        <div class="stat-details">
+                            <span class="stat-val" id="svStatPendingHours">0.0</span>
+                            <span class="stat-title">รออนุมัติ (ชั่วโมง)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approval logs table -->
+                <div class="card">
+                    <div class="card-header flex justify-between align-center">
+                        <h3><i class="fa-solid fa-list-check"></i> รายการปฏิบัติงานที่รอการตรวจสอบ</h3>
+                        <span class="badge" id="svLogCountBadge">0 รายการ</span>
+                    </div>
+                    <div class="card-body table-responsive">
+                        <table id="svApprovalTable" class="table">
+                            <thead>
+                                <tr>
+                                    <th width="12%">วันที่</th>
+                                    <th width="10%">เวลาเข้า</th>
+                                    <th width="10%">เวลาออก</th>
+                                    <th width="10%">ชั่วโมงทำงาน</th>
+                                    <th width="15%">สถานะ</th>
+                                    <th>ภาระงาน / รายละเอียดกิจกรรม</th>
+                                    <th width="20%" class="text-center">จัดการรายการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="svApprovalTableBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SECTION: Supervisor Settings ================= -->
+            <section id="supervisor-settings" class="content-section">
+                <div class="dashboard-grid">
+                    <!-- PIN Password Change Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-key"></i> เปลี่ยนรหัสเข้าโหมดพี่เลี้ยง</h3>
+                        </div>
+                        <form id="changePinForm" class="card-body">
+                            <div class="form-group">
+                                <label for="currentPin">รหัสผ่านปัจจุบัน</label>
+                                <input type="password" id="currentPin" class="form-control" placeholder="รหัสเริ่มต้นคือ 1234" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPin">รหัสผ่านใหม่ (เลข 4 ตัว)</label>
+                                <input type="password" id="newPin" class="form-control" pattern="[0-9]{4}" maxlength="4" placeholder="เช่น 5678" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmNewPin">ยืนยันรหัสผ่านใหม่</label>
+                                <input type="password" id="confirmNewPin" class="form-control" pattern="[0-9]{4}" maxlength="4" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fa-solid fa-key"></i> บันทึกรหัสผ่านใหม่
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Digital Signature Configuration Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-signature"></i> ลายเซ็นดิจิทัลการรับรอง</h3>
+                        </div>
+                        <form id="signatureForm" class="card-body">
+                            <div class="form-group">
+                                <label for="svNameDisplay">ชื่อผู้ตรวจปฏิบัติการ (ที่จะไปปรากฏในใบลงเวลา)</label>
+                                <input type="text" id="svNameDisplay" class="form-control" placeholder="เช่น นายสมศักดิ์ รักมั่น (พี่เลี้ยง)" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="svSignatureText">ลายเซ็นกำกับ / ตัวย่อ</label>
+                                <input type="text" id="svSignatureText" class="form-control" placeholder="เช่น สมศักดิ์ ร." required>
+                            </div>
+                            <p class="text-muted text-sm mb-4">
+                                * ข้อมูลลายเซ็นนี้จะใช้สำหรับแสตมป์อนุมัติและลงนามออนไลน์แบบอัตโนมัติในใบพิมพ์รายงานเมื่อนักศึกษาส่งออกเป็น PDF/Print
+                            </p>
+                            <button type="submit" class="btn btn-success btn-block">
+                                <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลการรับรอง
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- DIALOG MODAL: Create/Edit Student Profile -->
+    <div id="profileModal" class="modal-overlay hidden">
+        <div class="modal card">
+            <div class="modal-header">
+                <h3 id="modalTitle">ข้อมูลนักศึกษาฝึกงาน/สหกิจศึกษา</h3>
+                <button class="btn-close-modal" id="btnCloseModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="profileForm" class="modal-body">
+                <input type="hidden" id="editProfileIndex" value="-1">
+                
+                <div class="form-group">
+                    <label for="studentId">รหัสนักศึกษา <span class="text-danger">*</span></label>
+                    <input type="text" id="studentId" class="form-control" placeholder="เช่น 6401020304" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="studentName">ชื่อ - นามสกุล <span class="text-danger">*</span></label>
+                    <input type="text" id="studentName" class="form-control" placeholder="เช่น นายสมชาย ดีใจ" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group col">
+                        <label for="studentDept">สาขาวิชา / ภาควิชา</label>
+                        <input type="text" id="studentDept" class="form-control" placeholder="เช่น วิทยาการคอมพิวเตอร์">
+                    </div>
+                    <div class="form-group col">
+                        <label for="studentAdvisor">ชื่อพี่เลี้ยง / อาจารย์ที่ปรึกษา</label>
+                        <input type="text" id="studentAdvisor" class="form-control" placeholder="เช่น ดร.วิทยา สอนดี">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="studentCompany">สถานประกอบการ / หน่วยงาน</label>
+                    <input type="text" id="studentCompany" class="form-control" placeholder="เช่น บริษัท เทคโนโลยี จำกัด (มหาชน)">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btnCancelModal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DIALOG MODAL: Supervisor PIN Verification -->
+    <div id="pinModal" class="modal-overlay hidden">
+        <div class="modal card" style="max-width: 380px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-lock"></i> ยืนยันรหัสเข้าโหมดพี่เลี้ยง</h3>
+                <button class="btn-close-modal" id="btnCancelPin"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="pinForm" class="modal-body text-center">
+                <p class="mb-4 text-secondary">กรุณากรอกรหัสผ่าน 4 หลัก เพื่อความปลอดภัย <br><small class="text-muted">(รหัสเริ่มต้นคือ: 1234)</small></p>
+                <div class="form-group">
+                    <input type="password" id="inputPinCode" class="form-control text-center" 
+                           pattern="[0-9]{4}" maxlength="4" style="font-size: 24px; letter-spacing: 12px; font-weight: bold;" 
+                           placeholder="••••" required autofocus>
+                </div>
+                <div class="modal-footer justify-center w-full">
+                    <button type="button" class="btn btn-secondary" id="btnCancelPinBack">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">ยืนยันรหัส</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DIALOG MODAL: Supervisor Reject Reason/Feedback -->
+    <div id="rejectModal" class="modal-overlay hidden">
+        <div class="modal card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-triangle-exclamation text-danger"></i> ระบุเหตุผลที่ไม่ผ่านอนุมัติ</h3>
+                <button class="btn-close-modal" id="btnCancelReject"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="rejectForm" class="modal-body">
+                <input type="hidden" id="rejectLogDate" value="">
+                
+                <div class="form-group">
+                    <label for="rejectReason">เหตุผล/ข้อคิดเห็นที่ต้องแก้ไข <span class="text-danger">*</span></label>
+                    <textarea id="rejectReason" class="form-control" rows="4" placeholder="เช่น เวลาไม่ถูกต้อง, งานน้อยเกินกว่ากำหนด หรือกรุณากรอกหมายเหตุให้ละเอียด..." required></textarea>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btnCancelRejectBack">ยกเลิก</button>
+                    <button type="submit" class="btn btn-danger">ส่งคำขอกลับเพื่อแก้ไข</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PRINT OUT PRINT TEMPLATE (Hidden in standard screen display, visible only during print) -->
+    <div id="printTemplate" class="print-only">
+        <div class="print-header">
+            <h2>ใบลงเวลาปฏิบัติงานด้วยตนเอง (Work from Home)</h2>
+            <h3>การฝึกประสบการณ์วิชาชีพ / สหกิจศึกษา</h3>
+        </div>
+        
+        <div class="print-student-info">
+            <div class="print-info-row">
+                <div><strong>ชื่อ-นามสกุล:</strong> <span id="printName">-</span></div>
+                <div><strong>รหัสนักศึกษา:</strong> <span id="printId">-</span></div>
+            </div>
+            <div class="print-info-row">
+                <div><strong>สาขาวิชา/คณะ:</strong> <span id="printDept">-</span></div>
+                <div><strong>สถานประกอบการ:</strong> <span id="printCompany">-</span></div>
+            </div>
+            <div class="print-info-row">
+                <div><strong>พี่เลี้ยง/อาจารย์ที่ปรึกษา:</strong> <span id="printAdvisor">-</span></div>
+                <div><strong>ชั่วโมงทำงานสะสมสุทธิ:</strong> <span id="printTotalHours">-</span> ชั่วโมง</div>
+            </div>
+        </div>
+
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th width="5%">ที่</th>
+                    <th width="15%">วันที่</th>
+                    <th width="12%">เวลาเข้า</th>
+                    <th width="12%">เวลาออก</th>
+                    <th width="12%">ชั่วโมงทำงาน</th>
+                    <th>ภาระงาน / กิจกรรมปฏิบัติโดยสังเขป</th>
+                    <th width="18%">สถานะ / ลงนามรับรอง</th>
+                </tr>
+            </thead>
+            <tbody id="printTableBody">
+                <!-- Rows populated by JS -->
+            </tbody>
+        </table>
+
+        <!-- Signature Section -->
+        <div class="print-signature-area">
+            <div class="sig-box">
+                <p>ลงชื่อ............................................................</p>
+                <p>(............................................................)</p>
+                <p>นักศึกษาฝึกงาน/สหกิจศึกษา</p>
+                <p>วันที่ ..... / ..... / .....</p>
+            </div>
+            <div class="sig-box">
+                <p>ลงชื่อ............................................................</p>
+                <p>(............................................................)</p>
+                <p>พี่เลี้ยง / ผู้รับรองเวลาปฏิบัติงาน</p>
+                <p>วันที่ ..... / ..... / .....</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Logic Script -->
+    <script src="app.js"></script>
+</body>
+</html>
