@@ -3,7 +3,7 @@ $port = 8000
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$port/")
 
-$basePath = "C:\Users\dasqo\.gemini\antigravity\scratch\wfh-student-tracker"
+$basePath = $PSScriptRoot
 
 Write-Output "=========================================================="
 Write-Output " Starting WFH Time Tracker Local Web Server"
